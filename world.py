@@ -32,7 +32,7 @@ class World:
         return self.count_whites(ind, r) / r
     
     def getPixelColorType(self, ind: int, r: int = config.CAMERA_RESOLUTION) -> config.MacroTypes:
-        """Returns the enum value of a pixel in the world in range [ind, ind+r]"""
+        """Returns the enum value of a macropixel in the world in range [ind, ind+r]"""
         whites = self.count_whites(ind, r)
         s = config.getSoglia(r)
         if whites > r/2 + s: return config.MacroTypes.GRAY_WHITE
@@ -46,16 +46,9 @@ class World:
         returns a photo of the world starting at a given index
         uses a circular photo
         """
-        if ind + k * r < len(self._world):
-            # inside photo range
-            out: List[int] = []
-            for i in range(k):
-                sub: List[int] = self._world[ind+r*i:ind+r*(i+1)]
-                out.append(rng.choice(sub))
-            return out
-        else:
-            # outside photo range, use a circular tactic
-            whites: List[int] = [0 for i in range(k)]
-            for i in range(k*r):
-                whites[int(i/r)] += self._world[(ind+i)%len(self._world)]
-            return [1 if rng.randint(0,r) < whites[i] else 0 for i in range(k)]
+        # inside photo range
+        out: List[int] = []
+        for i in range(k):
+            sub: List[int] = self._world[ind+r*i:ind+r*(i+1)]
+            out.append(rng.choice(sub))
+        return out
