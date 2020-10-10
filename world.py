@@ -44,11 +44,9 @@ class World:
     def photo(self, ind: int, k:int = config.CAMERA_SIZE, r:int = config.CAMERA_RESOLUTION) -> List[int]:
         """
         returns a photo of the world starting at a given index
-        uses a circular photo
         """
         # inside photo range
         out: List[int] = []
         for i in range(k):
-            sub: List[int] = self._world[ind+r*i:ind+r*(i+1)]
-            out.append(rng.choice(sub))
+            out.append(rng.choice(self._world[ind+r*i:ind+r*(i+1)]))
         return out
