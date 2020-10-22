@@ -15,9 +15,9 @@ class MacroTypes(Enum):
     GRAY = 2
     GRAY_BLACK = 3
 
-def getSoglia(r: int =CAMERA_RESOLUTION):
+def getSoglia(r: int =CAMERA_RESOLUTION, constant=SOGLIA_CONSTANT):
     """Returns the soglia based on constants in range [0,r]"""
-    return math.sqrt(r)*SOGLIA_CONSTANT
+    return math.sqrt(r)*constant
 
 def getSoglia_scaled(r: int =CAMERA_RESOLUTION):
     """Returns the soglia based on constants in range [0,1]"""

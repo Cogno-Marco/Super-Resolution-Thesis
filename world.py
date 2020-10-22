@@ -1,13 +1,16 @@
 import random as rng
+import random
+from random import randint
 import config
 from typing import List
 import math
+import numpy as np
 
 class World:
     
     def __init__(self, size=config.WORLD_SIZE):
         """Generates and returns a new world with a given size (default taken from config)"""
-        self._world = [rng.randint(0,1) for i in range(size)]
+        self._world = [rng.randint(0,1) for i in range(size)]#np.random.randint(2, size=size)#
     
     def getWorld(self):
         return self._world
@@ -46,7 +49,7 @@ class World:
         returns a photo of the world starting at a given index
         """
         # inside photo range
-        out: List[int] = []
-        for i in range(k):
-            out.append(rng.choice(self._world[ind+r*i:ind+r*(i+1)]))
-        return out
+        #out: List[int] = []
+        #for i in range(k):
+        #    out.append(rng.choice(self._world[ind+r*i:ind+r*(i+1)]))
+        return [rng.choice(self._world[ind+r*i:ind+r*(i+1)]) for i in range(k)]
