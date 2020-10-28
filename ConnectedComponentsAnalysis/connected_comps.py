@@ -20,7 +20,7 @@ for i, image in enumerate(images):
     axs[0,i].imshow(loaded)
 
     #grayscale image
-    step_count = 8
+    step_count = 16
     grayscale = rgb2gray(loaded) * step_count
     grayscale = np.array([[int(p) for p in line] for line in grayscale])
     axs[1, i].imshow(grayscale, cmap='gray')
@@ -56,10 +56,12 @@ for i, image in enumerate(images):
     count = [v for _,v in sizes_count.items()]
     
     #show scatter plot
+    #axs[3,i].set_yscale("log")
     axs[3,i].scatter(sizes, count)
-    axs[3,i].set_ylim([-5000, max(count)+5000])
+    axs[3,i].set_ylim([0, 70000])
     axs[3,i].set_xticks(range(max(sizes)+1))
-    axs[3,i].set_yticks(range(0,max(count), 40000))
+    #axs[3,i].set_yticks(range(0,max(count), 40000))
+    #axs[3,i].set_yscale("linear")
     
     
 
