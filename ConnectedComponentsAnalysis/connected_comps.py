@@ -20,7 +20,7 @@ for i, image in enumerate(images):
     axs[0,i].imshow(loaded)
 
     #grayscale image
-    step_count = 16
+    step_count = 2
     grayscale = rgb2gray(loaded) * step_count
     grayscale = np.array([[int(p) for p in line] for line in grayscale])
     axs[1, i].imshow(grayscale, cmap='gray')

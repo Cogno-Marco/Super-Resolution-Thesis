@@ -2,13 +2,23 @@ import random as rng
 import config
 from typing import List
 import numpy as np
+from skimage import io
+from skimage.color import rgb2gray
 
 class World2D:
     
-    def __init__(self, size):
+    def __init__(self, size, use_image=False):
         """Generates and returns a new 2d world with a given square size"""
-        #self._world = np.random.randint(2, size=(size,size))
-        self._world = np.array([[rng.randint(0,1) for _ in range(size)] for _ in range(size)])
+        if use_image:
+            #load image
+            loaded = io.imread(f"ConnectedComponentsAnalysis/Lenna.png")
+
+            #grayscale image
+            step_count = 2
+            grayscale = rgb2gray(loaded) * step_count
+            self._world = np.array([[int(p) for p in line] for line in grayscale])
+        else:
+            self._world = np.array([[rng.randint(0,1) for _ in range(size)] for _ in range(size)])
     
     def getWorld(self):
         return self._world
