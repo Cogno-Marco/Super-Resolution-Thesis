@@ -7,7 +7,7 @@ from typing import List
 
 
 repetitions: int = 100
-CAMERA_RESOLUTION = 2
+CAMERA_RESOLUTION = 50
 CAMERA_SIZE = 10
 WORLD_SIZE = 512
 f=0
@@ -19,7 +19,7 @@ def mu(f):
 
 # test each shift from 0 to r
 #offsets = [0,1,CAMERA_RESOLUTION]
-k_values = [k for k in range(CAMERA_RESOLUTION, CAMERA_SIZE, step)]
+k_values = [k for k in range(1, CAMERA_SIZE, step)]
 
 rightGuesses = [0 for _ in k_values]
 
@@ -27,18 +27,18 @@ rightGuesses = [0 for _ in k_values]
 epsilon = 1/(2 * CAMERA_RESOLUTION**2 + 2 * CAMERA_RESOLUTION - 1)
 
 for test in range(repetitions):
-    world_2d = w.World2D(WORLD_SIZE, True)#use Lenna image
+    world_2d = w.World2D(WORLD_SIZE, True)#use image
     for k in k_values:
         # try to guess at size k, 
         # if you guess right count it, else continue
         currentGuesses = 0
         
         #check a photo
-        photoValue_1 = world_2d.photo((6,170), k, CAMERA_RESOLUTION)
         #photoValue_1 = world_2d.photo((6,170), k, CAMERA_RESOLUTION)
+        photoValue_1 = world_2d.photo((0,0), k, CAMERA_RESOLUTION)
         #check another photo
-        photoValue_2 = world_2d.photo((6 + f, 170 + f), k, CAMERA_RESOLUTION)
         #photoValue_2 = world_2d.photo((6 + f, 170 + f), k, CAMERA_RESOLUTION)
+        photoValue_2 = world_2d.photo((f,f), k, CAMERA_RESOLUTION)
         
         #print(photoValue_1)
         #print(photoValue_2)
