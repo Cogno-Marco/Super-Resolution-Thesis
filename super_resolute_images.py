@@ -1,88 +1,9 @@
+from typing import List
 import world_2d as w
 import numpy as np
+from bucket import Bucket
 
-def mu(f, r):
-    #if f > CAMERA_RESOLUTION: return mu(CAMERA_RESOLUTION)
-    return 0.5 + 1/(2 * r) - f/(2 * r**2)
-def epsilon(r):
-    return 1/(2 * r**2 + 2 * r - 1)
-
-class Bucket:
-    
-    def __init__(self, principal_voice, r):
-        self.r = r
-        self.k = len(principal_voice)
-        self.principal = principal_voice
-        self.photos = []
-        self.photos.append(principal_voice)
-    
-    def is_photo_aligned(self, photo):
-        currentGuesses = 0
-        for i in range(len(photo)):
-            for macro_guessed, macro_actual in zip(self.principal[i], photo[i]):
-                if macro_guessed == macro_actual:
-                    currentGuesses += 1
-        
-        return currentGuesses > ((self.k**2) / 2 + self.k * 3 / 4)
-    
-    def add_photo(self, photo):
-        self.photos.append(photo)
-    
-    def get_photos(self):
-        return self.photos
-    
-    def get_whites_count(self):
-        whites = [[0 for _ in range(self.k)] for _ in range (self.k)]
-        for photo in self.photos:
-            for ind, line in enumerate(photo):
-                whites[ind] = [val + count for val, count in zip(line, whites[ind])]
-        return [[int(round(i*CAMERA_RESOLUTION/len(self.photos))) for i in line] for line in whites]
-    
-    def get_diff(self, bucket):
-        diff = [[0 for _ in range(self.k)] for _ in range (self.k)]
-        my_count = self.get_whites_count()
-        his_count = bucket.get_whites_count()
-        for ind in range(self.k):
-            diff[ind] = [my_c - his_c for my_c, his_c in zip(my_count[ind], his_count[ind])]
-        return diff
-
-    def is_equal(self, bucket):
-        #if the difference of each macro is 0, the zones are the same
-        for line in self.get_diff(bucket):
-            for count in line:
-                if count != 0: return False
-        return True
-
-    def is_bucket_aligned(self, bucket):
-        diff = self.get_diff(bucket)
-        diff_sum = np.array(diff).sum()
-        return abs(diff_sum) <= CAMERA_RESOLUTION / 8
-        
-        
-        #if the difference is not in the range [-1,1] the buckets are NOT aligned
-        diff = self.get_diff(bucket)
-        for line in diff:
-            for count in line:
-                if count > 1 or count < -1: return False
-        
-        #they're also not aligned if, watching pixel by pixel, as one increases, the other increases too
-        # or if one decreases the other decreases too
-        #basically to be valid, +1 and -1 must alternate (ignoring 0s)
-        
-        for line in diff:
-            parity = None
-            for count in line:
-                if count == 0: continue #ignore 0s
-                if parity == None: 
-                    parity = count #set starting parity as equal
-                    continue
-                if parity == count:
-                    #if parity of the last change is the same as this, then it doesn't alternate, so this is not valid
-                    return False
-                else: parity = count
-                
-        return True
-
+Photo = List[List[int]] #define photo type
 
 CAMERA_SIZE = 7
 CAMERA_RESOLUTION = 64
@@ -91,9 +12,48 @@ CAMERA_RESOLUTION = 64
 world_2d = w.World2D(512)
 PHOTOS_PER_OFFSET = 32
 
+def mu(f, r):
+    #if f > CAMERA_RESOLUTION: return mu(CAMERA_RESOLUTION)
+    return 0.5 + 1/(2 * r) - f/(2 * r**2)
+def epsilon(r):
+    return 1/(2 * r**2 + 2 * r - 1)
+
+
+class Chain:
+    
+    def __init__(self, startingBucket : Bucket, r):
+        self.chain : List[Bucket] = [startingBucket]
+        self.r = r
+    
+    def try_add_photo(self, photo : Photo):
+        #try to add a photo to the first element, return true if possible
+        if(self.chain[0].is_photo_aligned(photo)):
+            self.chain[0].add_photo(photo)
+            return True
+        
+        #try to add a photo to the last element, return true if possible
+        if(self.chain[-1].is_photo_aligned(photo)):
+            self.chain[-1].add_photo(photo)
+            return True
+        
+        #couldn't add any photo, return False
+        return False
+            
+    def extend_left(self, photo : Photo):
+        self.chain.insert(0, Bucket(photo, self.r))
+    
+    def extend_right(self, photo : Photo):
+        self.chain.insert(-1, Bucket(photo, self.r))
+    
+    def get_right_difference(self, photo : Photo) -> int:
+        return abs(np.array(self.chain[-1].get_photo_diff(photo)).sum())
+    
+    def get_left_difference(self, photo : Photo) -> int:
+        return abs(np.array(self.chain[0].get_photo_diff(photo)).sum())
+
 #Algorithm:
 
-buckets_list = []
+buckets_list : List[Bucket] = []
 
 print("adding photos to buckets")
 
@@ -119,39 +79,25 @@ for x in range(CAMERA_RESOLUTION+1):
 print(f"photos added to buckets, total buckets={len(buckets_list)}")
 #when I have enough photos
 
-print("cleaning buckets")
-clean_buckets = []
-#join equal buckets together
-for i in range(len(buckets_list)):
-    main_bucket = buckets_list[i]
-    for j in range(i, len(buckets_list)):
-        if i == j: continue #skip compare to itself
-        b2 = buckets_list[j]
-        
-        #if they're equal, fuse them together
-        if main_bucket.is_equal(b2):
-            for k,photo in enumerate(b2.get_photos()):
-                #print(f"adding photo {k}")
-                main_bucket.add_photo(photo)
-    clean_buckets.append(main_bucket)
-print(f"buckets cleaned, remaining {len(clean_buckets)} buckets")
+# get bucket with more images
+mainBucket = buckets_list[0]
+remainingImages = []
+for i in range(1,len(buckets_list)):
+    bucket = buckets_list[i]
+    if bucket.get_bucket_size() > mainBucket.get_bucket_size():
+        #bucket is big enough, add old ones photos into remaining images
+        remainingImages.extend(mainBucket.get_photos())
+        mainBucket = bucket
+    else:
+        #bucket was not big enough, move images into remaining
+        remainingImages.extend(bucket.get_photos())
 
-print(len(clean_buckets[0].get_photos()))
-print(clean_buckets[0].get_whites_count())
-print(clean_buckets[1].get_whites_count())
-print(clean_buckets[2].get_whites_count())
-#link each bucket pair to create an order, knowing that near bucket cannot change micropixels by more than 1
 
-for i in range(len(buckets_list)):
-    main_bucket = buckets_list[i]
-    for j in range(i, len(buckets_list)):
-        if i == j: continue #skip compare to itself
-        b2 = buckets_list[j]
-        
-        #if they're aligned, put them next to each other
-        if main_bucket.is_bucket_aligned(b2):
-            print(f"alignment buckets {i}, {j}")
-
+# now compare each photo with bucket
+# photos can be part of the bucket (so add them to the bucket)
+# else they have some offset >= 1
+# the photos with the least offset can be added to the left or to the right
+#
         
         
 

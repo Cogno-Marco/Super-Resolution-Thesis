@@ -1,6 +1,6 @@
 import random as rng
 import config
-from typing import List
+from typing import List, Tuple
 import numpy as np
 from skimage import io
 from skimage.color import rgb2gray
@@ -23,16 +23,16 @@ class World2D:
     def getWorld(self):
         return self._world
         
-    def count_whites(self, ind: int, r: int) -> int:
+    def count_whites(self, ind: Tuple[int,int], r: int) -> int:
         """Returns how many white micropixels there are from [x,y] to [x+r,y+r] (ind = (x,y) )"""
         y,x = ind
         return sum(sum(self._world[x:x+r, y:y+r]))
     
-    def getPixelColorValue(self, ind: int, r: int = config.CAMERA_RESOLUTION) -> float:
+    def getPixelColorValue(self, ind: Tuple[int,int], r: int = config.CAMERA_RESOLUTION) -> float:
         """Returns the value of a pixel [0..1] in the world in range [ind, ind+r], 0 means all black, 1 means all white"""
         return self.count_whites(ind, r) / (r**2)
     
-    def getPixelColorType(self, ind: int, r: int = config.CAMERA_RESOLUTION) -> config.MacroTypes:
+    def getPixelColorType(self, ind: Tuple[int,int], r: int = config.CAMERA_RESOLUTION) -> config.MacroTypes:
         """Returns the enum value of a macropixel in the world in range [ind, ind+r]"""
         whites = self.count_whites(ind, r)
         s = config.getSoglia(r)
@@ -41,7 +41,7 @@ class World2D:
         return config.MacroTypes.GRAY
     
     
-    def photo(self, ind: int, k:int = config.CAMERA_SIZE, r:int = config.CAMERA_RESOLUTION) -> List[int]:
+    def photo(self, ind: Tuple[int,int], k:int = config.CAMERA_SIZE, r:int = config.CAMERA_RESOLUTION) -> List[int]:
         """
         returns a photo of the world starting at a given index
         """
