@@ -4,12 +4,12 @@ import numpy as np
 from bucket import Bucket, Photo
 from world_2d import World2D
 
-CAMERA_SIZE = 7
-CAMERA_RESOLUTION = 64
+CAMERA_SIZE: int = 7
+CAMERA_RESOLUTION: int = 64
 
 # load world with image
 world_2d: World2D = w.World2D(512)
-PHOTOS_PER_OFFSET = 32
+PHOTOS_PER_OFFSET: int = 8
 
 
 def mu(f, r):
@@ -41,11 +41,11 @@ class Chain:
         # couldn't add any photo, return False
         return False
 
-    def extend_left(self, photo: Photo):
-        self.chain.insert(0, Bucket(photo, self.r))
+    def extend_left(self, bucket: Bucket):
+        self.chain.insert(0, bucket)
 
-    def extend_right(self, photo: Photo):
-        self.chain.insert(-1, Bucket(photo, self.r))
+    def extend_right(self, bucket: Bucket):
+        self.chain.insert(-1, bucket)
 
     def get_right_difference(self, photo: Photo) -> int:
         return abs(np.array(self.chain[-1].get_photo_diff(photo)).sum())
@@ -84,16 +84,16 @@ print(f"photos added to buckets, total buckets={len(buckets_list)}")
 
 # get bucket with more images
 mainBucket: Bucket = buckets_list[0]
-remainingImages: List[Photo] = []
+remainingBuckets: List[Bucket] = []
 for i in range(1, len(buckets_list)):
     bucket = buckets_list[i]
     if bucket.get_bucket_size() > mainBucket.get_bucket_size():
-        # bucket is big enough, add old ones photos into remaining images
-        remainingImages.extend(mainBucket.get_photos())
+        # bucket is big enough, add old one into remaining
+        remainingBuckets.append(mainBucket)
         mainBucket = bucket
     else:
         # bucket was not big enough, move images into remaining
-        remainingImages.extend(bucket.get_photos())
+        remainingBuckets.append(bucket)
 
 # now compare each photo with bucket
 # photos can be part of the bucket (so add them to the bucket)
@@ -101,12 +101,41 @@ for i in range(1, len(buckets_list)):
 # the photos with the least offset can be added to the left or to the right
 chain: Chain = Chain(mainBucket, CAMERA_RESOLUTION)
 
-while len(remainingImages) > 0:
-    for photo in remainingImages:
-        if chain.try_add_photo(photo):
-            remainingImages.remove(photo)
-            break
+while len(remainingBuckets) > 0:
+    hasJoinedImage: bool = False
 
+    # find closest image and try to add others
+    closest : Bucket = remainingBuckets[0]
+    indexOfClosest: int = 0
+    for i, bucket in enumerate(remainingBuckets):
+        # if chain.try_add_photo(bucket.principal):
+        #     remainingBuckets.pop(i)
+        #     hasJoinedImage = True
+        #     print(f"photo was part of bucket, {len(remainingImages)} remaining")
+        #     break
+        
+        closestDiffR: int = chain.get_right_difference(closest.principal)
+        closestDiffL: int = chain.get_left_difference(closest.principal)
+        bucketDiffR: int = chain.get_right_difference(bucket.principal)
+        bucketDiffL: int = chain.get_left_difference(bucket.principal)
+        
+        if bucketDiffR < closestDiffR or bucketDiffL < closestDiffL:
+            closest = bucket
+            indexOfClosest = i
+
+    # skip photo if it was added to a bucket
+    if hasJoinedImage:
+        continue
+    
+    #here I have the closest photo, a simple diff tells me if it's closest left or right
+    #add it as a new chain to that side
+    if chain.get_left_difference(closest.principal) < chain.get_right_difference(closest.principal):
+        chain.extend_left(closest)
+    else:
+        chain.extend_right(closest)
+    #remove from list of images and continue
+    remainingBuckets.pop(indexOfClosest)
+    print(f"removed a bucket, {len(remainingBuckets)} remaining")
 
 # now that I have an order, find out how micropixels change to know how to place them
 # if number of white micros increases by 1, a black micro exited and a white entered
