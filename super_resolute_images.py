@@ -1,26 +1,21 @@
-from typing import List
+from typing import List, Tuple
 import world as w
 import numpy as np
-#from bucket import Bucket
+from bucket import Bucket
 from photo import Photo
 import random
 import matplotlib.pyplot as plt
 
-CAMERA_SIZE: int = 50000
-CAMERA_RESOLUTION: int = 8
+#CAMERA_SIZE: int = 50000
+#CAMERA_RESOLUTION: int = 8
+
+CAMERA_SIZE: int = 10000
+CAMERA_RESOLUTION:int = 4
 
 # load world with image
 world: w.World = w.World(500000)
 PHOTOS_PER_OFFSET: int = 16
 
-
-def mu(f, r):
-    # if f > CAMERA_RESOLUTION: return mu(CAMERA_RESOLUTION)
-    return 0.5 + 1/(2 * r) - f/(2 * r**2)
-
-
-def epsilon(r):
-    return 1/(2 * r**2 + 2 * r - 1)
 
 
 # Algorithm:
@@ -114,6 +109,19 @@ for i in range(1,len(chain)):
     #print(f"offset 1: {chain[i-1].offset}, offset 2: {p.offset}")
     #print(f"photo {i} distance to {i-1}: {p.get_distance(chain[i-1])}")
 
+
+
+
+# separate images into buckets by finding the r peaks (avoiding first and last photo though)
+clean_photos: List[Photo] = chain[0:-1]
+clean_distances = [clean_photos[i].get_distance(clean_photos[i-1]) for i in range(1, len(clean_photos))]
+peaks: List[Tuple[int,int]] = []
+peaks = sorted([(i,dist) for i,dist in enumerate(clean_distances)], key=lambda tup: tup[1], reverse = True)[0:CAMERA_RESOLUTION]
+peaks_indeces = sorted([i for i,_ in peaks])
+
+print(f"peaks: {peaks}")
+print(f"peaks: {peaks_indeces}")
+
 print(f"distance from first to last: {chain[0].get_distance(chain[-1])}")
 print(f"distance from first to second: {chain[0].get_distance(chain[1])}")
 print("first photo:")
@@ -126,6 +134,21 @@ plt.bar(list(range(1, len(chain))), distances)
 plt.show()
 plt.bar(list(range(len(chain))), offsets)
 plt.show()
+
+
+ranges = [(peaks_indeces[i]+2, peaks_indeces[i+1]+1) for i in range(len(peaks_indeces)-1)]
+ranges.insert(0, (0,peaks_indeces[0]+1))
+ranges.append((peaks_indeces[-1]+2, len(clean_photos)))
+print(ranges)
+buckets: List[Bucket] = []
+for start,end in ranges:
+    bucket = Bucket(clean_photos[start], CAMERA_RESOLUTION)
+    for i in range(start+1, end):
+        bucket.add_photo(clean_photos[i])
+    buckets.append(bucket)
+
+#buckets: List[Bucket] = [Bucket(clean_photos[i], CAMERA_RESOLUTION) for i in peaks_indeces]
+
 # now that I have an order, find out how micropixels change to know how to place them
 # if number of white micros increases by 1, a black micro exited and a white entered
 # if number of micros decreases by 1, a white micro exited and a black entered
