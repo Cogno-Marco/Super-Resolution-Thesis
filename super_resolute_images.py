@@ -138,7 +138,7 @@ plt.show()
 
 ranges = [(peaks_indeces[i]+2, peaks_indeces[i+1]+1) for i in range(len(peaks_indeces)-1)]
 ranges.insert(0, (0,peaks_indeces[0]+1))
-ranges.append((peaks_indeces[-1]+2, len(clean_photos)))
+ranges.append((peaks_indeces[-1]+1, len(clean_photos)-1))
 print(ranges)
 buckets: List[Bucket] = []
 for start,end in ranges:
@@ -147,8 +147,6 @@ for start,end in ranges:
         bucket.add_photo(clean_photos[i])
     buckets.append(bucket)
 
-#buckets: List[Bucket] = [Bucket(clean_photos[i], CAMERA_RESOLUTION) for i in peaks_indeces]
-
 # now that I have an order, find out how micropixels change to know how to place them
 # if number of white micros increases by 1, a black micro exited and a white entered
 # if number of micros decreases by 1, a white micro exited and a black entered
@@ -156,3 +154,79 @@ for start,end in ranges:
 # also
 # if number of white micros is 0, the whole piece is black
 # if number of white micros is r, the whole piece is white
+def construct_world(whites):
+    r = CAMERA_RESOLUTION
+    final_photo = [-5 for _ in range((CAMERA_SIZE+2)*r)]
+    for i in range(len(whites)-1):
+        current_count = whites[i]
+        next_count = whites[i+1]
+        for ind in range(len(current_count)-1):
+            c1,c2 = current_count[ind], next_count[ind]
+            if c1 == r:
+                for m in range(i+(ind)*r, i+(ind+1)*r):
+                    final_photo[m] = 1
+                    continue
+            elif c1 == 0:
+                for m in range(i+(ind)*r, i+(ind+1)*r):
+                    final_photo[m] = 0
+                    continue
+            
+            if c1 < c2:
+                final_photo[i+(ind)*r] = 0
+                final_photo[i+(ind+1)*r] = 1
+            elif c1 > c2:
+                final_photo[i+(ind)*r] = 1
+                final_photo[i+(ind+1)*r] = 0
+            elif c1 == c2:
+                if final_photo[i+(ind)*r] > -1:
+                    final_photo[i+(ind+1)*r] = final_photo[i+(ind)*r]
+                elif final_photo[i+(ind+1)*r] > -1:
+                    final_photo[i+(ind)*r] = final_photo[i+(ind+1)*r]
+                else:
+                    choice = random.randint(0,1)
+                    final_photo[i+(ind)*r] = choice
+                    final_photo[i+(ind+1)*r] = choice
+    return final_photo
+
+#assume photos are aligned
+whites = [b.get_whites_count() for b in buckets]
+
+for white in whites:
+    print(white[0:20])
+final_photo = construct_world(whites)
+
+print("photo constructed 0  to 20")
+print(final_photo[0:20])
+print("original world")
+print(world.getWorld()[0:20])
+    
+errors_straight = 0
+for i in range(min(len(final_photo), len(world.getWorld()))):
+    c1,c2 = final_photo[i], world.getWorld()[i]
+    if c1 != c2:
+        errors_straight+=1
+
+print(f"error rate straight: {100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
+ 
+ 
+# assume photos are reversed   
+whites = [b.get_whites_count() for b in reversed(buckets)]
+
+for white in whites:
+    print(white[0:20])
+final_photo = construct_world(whites)
+
+print("photo REVERSED constructed 0  to 20")
+print(final_photo[0:20])
+print("original world")
+print(world.getWorld()[0:20])
+    
+errors_reversed = 0
+for i in range(min(len(final_photo), len(world.getWorld()))):
+    c1,c2 = final_photo[i], world.getWorld()[i]
+    if c1 != c2:
+        errors_reversed+=1
+
+print(f"error rate REVERSED: {100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
+
+
