@@ -13,7 +13,7 @@ CAMERA_SIZE: int = 10000
 CAMERA_RESOLUTION:int = 4
 
 # load world with image
-world: w.World = w.World(500000)
+world: w.World = w.World(10000)
 PHOTOS_PER_OFFSET: int = 16
 
 
@@ -25,7 +25,7 @@ photo_list: List[Photo] = []
 print("adding photos to buckets")
 
 # for each try for each offset
-for x in range(CAMERA_RESOLUTION+1):
+for x in range(CAMERA_RESOLUTION):
     for _ in range(PHOTOS_PER_OFFSET):
         # Take a picture
         photo: Photo = Photo(world, CAMERA_SIZE, CAMERA_RESOLUTION, x)
@@ -54,11 +54,6 @@ while len(photo_list) > 0:
     indexOfClosest: int = 0
     for i in range(1,len(photo_list)):
         photo = photo_list[i]
-        # if chain.try_add_photo(bucket.principal):
-        #     remainingBuckets.pop(i)
-        #     hasJoinedImage = True
-        #     print(f"photo was part of bucket, {len(remainingImages)} remaining")
-        #     break
         if chain[-1].is_photo_aligned(photo) or chain[0].is_photo_aligned(photo):
             print("found an aligned photo")
             if chain[0].get_distance(photo) <= chain[-1].get_distance(photo):
@@ -68,12 +63,6 @@ while len(photo_list) > 0:
             photo_list.pop(i)
             hasJoinedImage = True
             break
-        # if chain[0].is_photo_aligned(photo):
-            # chain.insert(0, photo)
-            # photo_list.pop(i)
-            # hasJoinedImage = True
-            # break
-        
         
         closestDiffR: int = chain[-1].get_distance(closest)
         closestDiffL: int = chain[0].get_distance(closest)
@@ -92,31 +81,21 @@ while len(photo_list) > 0:
     #here I have the closest photo, a simple diff tells me if it's closest left or right
     #add it as a new chain to that side
     if chain[0].get_distance(closest) < chain[-1].get_distance(closest):
-        #print("added left")
         chain.insert(0, closest)
     else:
-        #print("added right")
         chain.insert(-1, closest)
     #remove from list of images and continue
     photo_list.pop(indexOfClosest)
-    #print(f"removed a bucket, {len(photo_list)} remaining")
 
 distances = [chain[i].get_distance(chain[i-1]) for i in range(1, len(chain))]
 offsets = [p.offset for p in chain]
 
-for i in range(1,len(chain)):
-    p: Photo = chain[i]
-    #print(f"offset 1: {chain[i-1].offset}, offset 2: {p.offset}")
-    #print(f"photo {i} distance to {i-1}: {p.get_distance(chain[i-1])}")
 
-
-
-
-# separate images into buckets by finding the r peaks (avoiding first and last photo though)
+# separate images into buckets by finding the r peaks (avoiding last photo though, very likely it's wrong)
 clean_photos: List[Photo] = chain[0:-1]
 clean_distances = [clean_photos[i].get_distance(clean_photos[i-1]) for i in range(1, len(clean_photos))]
 peaks: List[Tuple[int,int]] = []
-peaks = sorted([(i,dist) for i,dist in enumerate(clean_distances)], key=lambda tup: tup[1], reverse = True)[0:CAMERA_RESOLUTION]
+peaks = sorted([(i,dist) for i,dist in enumerate(clean_distances)], key=lambda tup: tup[1], reverse = True)[0:CAMERA_RESOLUTION-1]
 peaks_indeces = sorted([i for i,_ in peaks])
 
 print(f"peaks: {peaks}")
@@ -190,6 +169,11 @@ def construct_world(whites):
 
 #assume photos are aligned
 whites = [b.get_whites_count() for b in buckets]
+#circular world, re-start with first whites count (shifted 1)
+last = whites[0]
+last = last[0:-2]
+last.append(whites[0][-1])
+whites.append(last)
 
 for white in whites:
     print(white[0:20])
@@ -211,6 +195,11 @@ print(f"error rate straight: {100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE
  
 # assume photos are reversed   
 whites = [b.get_whites_count() for b in reversed(buckets)]
+#circular world, re-start with first whites count (shifted 1)
+last = whites[0]
+last = last[0:-2]
+last.append(whites[0][-1])
+whites.append(last)
 
 for white in whites:
     print(white[0:20])
