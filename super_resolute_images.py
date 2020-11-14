@@ -105,11 +105,11 @@ print(f"peaks: {peaks_indeces}")
 print(f"distance from first to last: {chain[0].get_distance(chain[-1])}")
 print(f"distance from first to second: {chain[0].get_distance(chain[1])}")
 print("first photo:")
-print(chain[0].photo)
+print(chain[0].photo[0:20])
 print("second photo:")
-print(chain[1].photo)
+print(chain[1].photo[0:20])
 print("last photo:")
-print(chain[-1].photo)
+print(chain[-1].photo[0:20])
 plt.bar(list(range(1, len(chain))), distances)
 plt.show()
 plt.bar(list(range(len(chain))), offsets)
@@ -132,46 +132,9 @@ for start, end in ranges:
 # if number of white micros increases by 1, a black micro exited and a white entered
 # if number of micros decreases by 1, a white micro exited and a black entered
 # if number of micros is equal, the micro entered is equal to the micro who exited
-# also
-# if number of white micros is 0, the whole piece is black
-# if number of white micros is r, the whole piece is white
 
-
-def construct_world(whites):
-    r = CAMERA_RESOLUTION
-    final_photo = [-5 for _ in range((CAMERA_SIZE+2)*r)]
-    for i in range(len(whites)-1):
-        current_count = whites[i]
-        next_count = whites[i+1]
-        for ind in range(len(current_count)-1):
-            c1, c2 = current_count[ind], next_count[ind]
-            if c1 == r:
-                for m in range(i+(ind)*r, i+(ind+1)*r):
-                    final_photo[m] = 1
-                    continue
-            elif c1 == 0:
-                for m in range(i+(ind)*r, i+(ind+1)*r):
-                    final_photo[m] = 0
-                    continue
-
-            if c1 < c2:
-                final_photo[i+(ind)*r] = 0
-                final_photo[i+(ind+1)*r] = 1
-            elif c1 > c2:
-                final_photo[i+(ind)*r] = 1
-                final_photo[i+(ind+1)*r] = 0
-            elif c1 == c2:
-                if final_photo[i+(ind)*r] > -1:
-                    final_photo[i+(ind+1)*r] = final_photo[i+(ind)*r]
-                elif final_photo[i+(ind+1)*r] > -1:
-                    final_photo[i+(ind)*r] = final_photo[i+(ind+1)*r]
-                else:
-                    choice = random.randint(0, 1)
-                    final_photo[i+(ind)*r] = choice
-                    final_photo[i+(ind+1)*r] = choice
-    return final_photo
-
-
+#in a frequency based approach, look how the float count changes pixel by pixel
+#if it's above 0.5 it's a white micro, else it's a black micro
 def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
     # calculate frequencies
     out: List[float] = []
@@ -179,12 +142,15 @@ def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
         for photo_index in range(len(whites)):
             out.append(whites[photo_index][macro_count])
 
+    #print(f"out: {out[0:20]}")
     # remap from [min,max] to [0,1]
     min_in: float = min(out)
     max_in: float = max(out)
     freq: List[float] = [(f-min_in)/(max_in-min_in) for f in out]
+    #print(f"freq: {freq[0:20]}")
 
     # convert to world
+    # N.B. don't use round(), round(0.5) -> 0 but we want 1
     return [1 if m >=0.5 else 0 for m in freq]
 
 
