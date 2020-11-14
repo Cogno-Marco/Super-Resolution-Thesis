@@ -45,11 +45,11 @@ class World:
         returns a photo of the world starting at a given index
         uses a circular photo
         """
-        if ind + k * r < len(self._world):
+        if ind + k * r <= len(self._world):
             return [rng.choice(self._world[ind+r*i:ind+r*(i+1)]) for i in range(k)]
         else:
             # outside photo range, use a circular tactic
-            whites: List[int] = [0 for i in range(k)]
+            whites: List[int] = [0] * k
             for i in range(k*r):
                 whites[int(i/r)] += self._world[(ind+i)%len(self._world)]
-            return [1 if rng.randint(0,r) < whites[i] else 0 for i in range(k)]
+            return [1 if rng.random() < whites[i]/r else 0 for i in range(k)]

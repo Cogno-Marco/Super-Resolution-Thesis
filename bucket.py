@@ -48,6 +48,8 @@ class Bucket:
         for photo in self.photos:
             for ind, macro in enumerate(photo.photo):
                 whites[ind] += macro
+        print(f"unscaled count for {len(self.photos)} photos")
+        print(whites[0:20])
         return [int(round(count*self.r/len(self.photos))) for count in whites]
 
     # def get_bucket_diff(self, bucket: 'Bucket') -> List[List[int]]:

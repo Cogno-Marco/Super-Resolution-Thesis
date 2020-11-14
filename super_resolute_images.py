@@ -142,7 +142,7 @@ for start, end in ranges:
 
 #in a frequency based approach, look how the float count changes pixel by pixel
 #if it's above 0.5 it's a white micro, else it's a black micro
-def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
+def construct_frequency_world(whites: List[List[float]]) -> List[int]:
     print("whites:")
     for f in whites:
         print(f[0:20])
@@ -157,23 +157,23 @@ def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
         print(f[0:20])
     
     #calculate partial reconstruction
-    recontruction: List[List[float]] = []
+    reconstruction: List[List[float]] = []
     for diff in diffs:
         partial: List[float] = [0]
         for d in diff:
             partial.append(partial[-1] + d)
         partial.pop(-1)
-        recontruction.append(partial)
+        reconstruction.append(partial)
         #plt.bar(list(range(0, min(1000, len(partial)))), partial[:1000])
         #plt.show()
     
     print("recs:")
-    for f in recontruction:
+    for f in reconstruction:
         print(f[0:20])
     
     # remap from [min,max] to [0,1]
     pieces: List[List[int]] = []
-    for photo in recontruction:
+    for photo in reconstruction:
         min_in: float = min(photo)
         max_in: float = max(photo)
         
@@ -195,6 +195,40 @@ def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
     # convert to world
     return out
 
+def construct_world(whites):
+    r = CAMERA_RESOLUTION
+    final_photo = [-5 for _ in range((CAMERA_SIZE+2)*r)]
+    for i in range(len(whites)-1):
+        current_count = whites[i]
+        next_count = whites[i+1]
+        for ind in range(len(current_count)-1):
+            c1, c2 = current_count[ind], next_count[ind]
+            if c1 == r:
+                for m in range(i+(ind)*r, i+(ind+1)*r):
+                    final_photo[m] = 1
+                    continue
+            elif c1 == 0:
+                for m in range(i+(ind)*r, i+(ind+1)*r):
+                    final_photo[m] = 0
+                    continue
+
+            if c1 < c2:
+                final_photo[i+(ind)*r] = 0
+                final_photo[i+(ind+1)*r] = 1
+            elif c1 > c2:
+                final_photo[i+(ind)*r] = 1
+                final_photo[i+(ind+1)*r] = 0
+            elif c1 == c2:
+                if final_photo[i+(ind)*r] > -1:
+                    final_photo[i+(ind+1)*r] = final_photo[i+(ind)*r]
+                elif final_photo[i+(ind+1)*r] > -1:
+                    final_photo[i+(ind)*r] = final_photo[i+(ind+1)*r]
+                else:
+                    choice = random.randint(0, 1)
+                    final_photo[i+(ind)*r] = choice
+                    final_photo[i+(ind+1)*r] = choice
+    return final_photo
+
 # whites = [[0,.5,.5, 1, 1,.5, 0,.5],
 #           [0, 1,.5, 1, 1, 0, 0,.5]]
 
@@ -209,13 +243,18 @@ def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
 
 
 # assume photos are aligned
-whites: List[List[float]] = [b.get_whites_count() for b in buckets]
+whites: List[List[float]] = [b.get_whites_count_int() for b in buckets]
 # add final count using circular world
 fin = whites[0]
 inverted = fin[1:]
 inverted.append(fin[0])
 whites.append(inverted)
-final_photo: List[int] = contruct_frequency_world(whites)
+
+print("whites:")
+for f in whites:
+    print(f[0:20])
+
+final_photo: List[int] = construct_frequency_world(whites)
 
 ground_truth = world.getWorld()
 
@@ -233,13 +272,17 @@ print(f"error rate straight: {100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE
 
 
 # assume photos are reversed
-whites_rev: List[List[float]] = [b.get_whites_count() for b in reversed(buckets)]
+whites_rev: List[List[float]] = [b.get_whites_count_int() for b in reversed(buckets)]
 # add final count using circular world
 fin = whites_rev[0]
 inverted = fin[:-1]
 inverted.append(fin[-1])
 whites_rev.append(inverted)
-final_photo_rev: List[int] = contruct_frequency_world(whites_rev)
+print("whites:")
+for f in whites:
+    print(f[0:20])
+    
+final_photo_rev: List[int] = construct_frequency_world(whites_rev)
 
 ground_truth = world.getWorld()
 print("photo REVERSED constructed 0  to 20")
