@@ -36,7 +36,14 @@ class Bucket:
     def get_bucket_size(self) -> int:
         return len(self.photos)
 
-    def get_whites_count(self) -> List[int]:
+    def get_whites_count(self) -> List[float]:
+        whites = [0 for _ in range(self.k)]
+        for photo in self.photos:
+            for ind, macro in enumerate(photo.photo):
+                whites[ind] += macro
+        return [count*self.r/len(self.photos) for count in whites]
+    
+    def get_whites_count_int(self) -> List[int]:
         whites = [0 for _ in range(self.k)]
         for photo in self.photos:
             for ind, macro in enumerate(photo.photo):
