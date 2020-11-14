@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 #CAMERA_SIZE: int = 50000
 #CAMERA_RESOLUTION: int = 8
 
-CAMERA_SIZE: int = 100000
-CAMERA_RESOLUTION: int = 8
+CAMERA_SIZE: int = 800
+CAMERA_RESOLUTION: int = 2
 
 # load world with image
 world: w.World = w.World(CAMERA_SIZE * CAMERA_RESOLUTION)
-PHOTOS_PER_OFFSET: int = 16
+PHOTOS_PER_OFFSET: int = 500
 
 
 # Algorithm:
@@ -104,7 +104,7 @@ peaks = sorted([(i, dist) for i, dist in enumerate(clean_distances)],
 #peaks_indeces: List[int] = sorted([i for i, _ in peaks])
 #TODO: remove this dependency
 #abuse the fact that each group has 16 photos
-peaks_indeces: List[int] = [i*16 for i in range(1,CAMERA_RESOLUTION)]
+peaks_indeces: List[int] = [i*PHOTOS_PER_OFFSET for i in range(1,CAMERA_RESOLUTION)]
 
 print(f"peaks: {peaks}")
 print(f"peaks: {peaks_indeces}")
@@ -143,39 +143,90 @@ for start, end in ranges:
 #in a frequency based approach, look how the float count changes pixel by pixel
 #if it's above 0.5 it's a white micro, else it's a black micro
 def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
-    # calculate frequencies
-    out: List[float] = []
-    for macro_count in range(len(whites[0])):
-        for photo_index in range(len(whites)):
-            out.append(whites[photo_index][macro_count])
-            #out.append(whites[(photo_index+1) % len(whites)][macro_count] - whites[photo_index][macro_count])
-            #out.append(whites[photo_index][(macro_count+1) % len(whites[0])] - whites[photo_index][macro_count])
+    print("whites:")
+    for f in whites:
+        print(f[0:20])
+    
+    # calculate differences
+    diffs: List[List[float]] = []
+    for i in range(len(whites)-1):
+        diffs.append([b-a for a,b in zip(whites[i], whites[i+1])])
+    
+    print("diffs:")
+    for f in diffs:
+        print(f[0:20])
+    
+    #calculate partial reconstruction
+    recontruction: List[List[float]] = []
+    for diff in diffs:
+        partial: List[float] = [0]
+        for d in diff:
+            partial.append(partial[-1] + d)
+        partial.pop(-1)
+        recontruction.append(partial)
+        #plt.bar(list(range(0, min(1000, len(partial)))), partial[:1000])
+        #plt.show()
+    
+    print("recs:")
+    for f in recontruction:
+        print(f[0:20])
+    
+    # remap from [min,max] to [0,1]
+    pieces: List[List[int]] = []
+    for photo in recontruction:
+        min_in: float = min(photo)
+        max_in: float = max(photo)
+        
+        #print(f"min: {min_in}, max: {max_in}")
+        freq: List[float] = [(pixel-min_in)/(max_in-min_in) for pixel in photo]
+        #print(f"freq: {freq[0:20]}")
+        
+        # N.B. don't use round(), round(0.5) -> 0 but we want 1
+        pieces.append([1 if m >=0.5 else 0 for m in freq])
+    
+    #join reconstructions
+    out: List[int] = []
+    for macro_count in range(len(pieces[0])):
+        for photo_index in range(len(pieces)):
+            out.append(pieces[photo_index][macro_count])
 
     print(f"out: {out[0:20]}")
-    # remap from [min,max] to [0,1]
-    min_in: float = min(out)
-    max_in: float = max(out)
-    freq: List[float] = [(f-min_in)/(max_in-min_in) for f in out]
-    print(f"freq: {freq[0:20]}")
-
+    
     # convert to world
-    # N.B. don't use round(), round(0.5) -> 0 but we want 1
-    return [1 if m >=0.5 else 0 for m in freq]
+    return out
+
+# whites = [[0,.5,.5, 1, 1,.5, 0,.5],
+#           [0, 1,.5, 1, 1, 0, 0,.5]]
+
+# fin = whites[0]
+# inverted = fin[1:]
+# inverted.append(fin[0])
+# whites.append(inverted)
+
+# print(whites)
+# final_photo = contruct_frequency_world(whites)
+# print(final_photo)
 
 
 # assume photos are aligned
 whites: List[List[float]] = [b.get_whites_count() for b in buckets]
+# add final count using circular world
+fin = whites[0]
+inverted = fin[1:]
+inverted.append(fin[0])
+whites.append(inverted)
 final_photo: List[int] = contruct_frequency_world(whites)
+
+ground_truth = world.getWorld()
 
 print("photo constructed 0  to 20")
 print(final_photo[0:20])
 print("original world")
-print(world.getWorld()[0:20])
+print(ground_truth[0:20])
 
 errors_straight = 0
-for i in range(min(len(final_photo), len(world.getWorld()))):
-    c1, c2 = final_photo[i], world.getWorld()[i]
-    if c1 != c2:
+for i in range(min(len(final_photo), len(ground_truth))):
+    if final_photo[i] != ground_truth[i]:
         errors_straight += 1
 
 print(f"error rate straight: {100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
@@ -183,17 +234,22 @@ print(f"error rate straight: {100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE
 
 # assume photos are reversed
 whites_rev: List[List[float]] = [b.get_whites_count() for b in reversed(buckets)]
+# add final count using circular world
+fin = whites_rev[0]
+inverted = fin[:-1]
+inverted.append(fin[-1])
+whites_rev.append(inverted)
 final_photo_rev: List[int] = contruct_frequency_world(whites_rev)
 
+ground_truth = world.getWorld()
 print("photo REVERSED constructed 0  to 20")
 print(final_photo_rev[0:20])
 print("original world")
-print(world.getWorld()[0:20])
+print(ground_truth[0:20])
 
 errors_reversed = 0
-for i in range(min(len(final_photo_rev), len(world.getWorld()))):
-    c1, c2 = final_photo_rev[i], world.getWorld()[i]
-    if c1 != c2:
+for i in range(min(len(final_photo_rev), len(ground_truth))):
+    if final_photo_rev[i] != ground_truth[i]:
         errors_reversed += 1
 
 print(f"error rate REVERSED: {100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
