@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 #CAMERA_SIZE: int = 50000
 #CAMERA_RESOLUTION: int = 8
 
-CAMERA_SIZE: int = 10000
-CAMERA_RESOLUTION: int = 4
+CAMERA_SIZE: int = 100000
+CAMERA_RESOLUTION: int = 8
 
 # load world with image
-world: w.World = w.World(10000)
+world: w.World = w.World(CAMERA_SIZE * CAMERA_RESOLUTION)
 PHOTOS_PER_OFFSET: int = 16
 
 
@@ -21,7 +21,7 @@ PHOTOS_PER_OFFSET: int = 16
 
 photo_list: List[Photo] = []
 
-print("adding photos to buckets")
+print("taking photos")
 
 # for each try for each offset
 for x in range(CAMERA_RESOLUTION):
@@ -29,8 +29,9 @@ for x in range(CAMERA_RESOLUTION):
         # Take a picture
         photo: Photo = Photo(world, CAMERA_SIZE, CAMERA_RESOLUTION, x)
         photo_list.append(photo)
+    print(f"taken photos for group {x+1}/{CAMERA_RESOLUTION}")
 
-print(f"photos added to buckets, total buckets={len(photo_list)}")
+print(f"photos taken: {len(photo_list)}")
 # randomyze photo list
 random.shuffle(photo_list)
 # when I have enough photos
@@ -51,6 +52,8 @@ while len(photo_list) > 0:
     # find closest image and try to add others
     closest: Photo = photo_list[0]
     indexOfClosest: int = 0
+    closestDiffR: int = chain[-1].get_distance(closest)
+    closestDiffL: int = chain[0].get_distance(closest)
     for i in range(1, len(photo_list)):
         photo = photo_list[i]
         if chain[-1].is_photo_aligned(photo) or chain[0].is_photo_aligned(photo):
@@ -63,8 +66,6 @@ while len(photo_list) > 0:
             hasJoinedImage = True
             break
 
-        closestDiffR: int = chain[-1].get_distance(closest)
-        closestDiffL: int = chain[0].get_distance(closest)
         bucketDiffR: int = chain[-1].get_distance(photo)
         bucketDiffL: int = chain[0].get_distance(photo)
 
@@ -72,6 +73,9 @@ while len(photo_list) > 0:
             #print(f"new distances: left {bucketDiffL}, right {bucketDiffR}")
             closest = photo
             indexOfClosest = i
+            #update closest count
+            closestDiffR = chain[-1].get_distance(closest)
+            closestDiffL = chain[0].get_distance(closest)
 
     # skip photo if it was added to a bucket
     if hasJoinedImage:
@@ -97,7 +101,10 @@ clean_distances = [clean_photos[i].get_distance(
 peaks: List[Tuple[int, int]] = []
 peaks = sorted([(i, dist) for i, dist in enumerate(clean_distances)],
                key=lambda tup: tup[1], reverse=True)[0:CAMERA_RESOLUTION-1]
-peaks_indeces = sorted([i for i, _ in peaks])
+#peaks_indeces: List[int] = sorted([i for i, _ in peaks])
+#TODO: remove this dependency
+#abuse the fact that each group has 16 photos
+peaks_indeces: List[int] = [i*16 for i in range(1,CAMERA_RESOLUTION)]
 
 print(f"peaks: {peaks}")
 print(f"peaks: {peaks_indeces}")
@@ -141,13 +148,15 @@ def contruct_frequency_world(whites: List[List[float]]) -> List[int]:
     for macro_count in range(len(whites[0])):
         for photo_index in range(len(whites)):
             out.append(whites[photo_index][macro_count])
+            #out.append(whites[(photo_index+1) % len(whites)][macro_count] - whites[photo_index][macro_count])
+            #out.append(whites[photo_index][(macro_count+1) % len(whites[0])] - whites[photo_index][macro_count])
 
-    #print(f"out: {out[0:20]}")
+    print(f"out: {out[0:20]}")
     # remap from [min,max] to [0,1]
     min_in: float = min(out)
     max_in: float = max(out)
     freq: List[float] = [(f-min_in)/(max_in-min_in) for f in out]
-    #print(f"freq: {freq[0:20]}")
+    print(f"freq: {freq[0:20]}")
 
     # convert to world
     # N.B. don't use round(), round(0.5) -> 0 but we want 1
