@@ -6,15 +6,12 @@ from photo import Photo
 import random
 import matplotlib.pyplot as plt
 
-#CAMERA_SIZE: int = 50000
-#CAMERA_RESOLUTION: int = 8
-
-CAMERA_SIZE: int = 800
-CAMERA_RESOLUTION: int = 2
+CAMERA_SIZE: int = 150000
+CAMERA_RESOLUTION: int = 16
 
 # load world with image
 world: w.World = w.World(CAMERA_SIZE * CAMERA_RESOLUTION)
-PHOTOS_PER_OFFSET: int = 500
+PHOTOS_PER_OFFSET: int = 100
 
 
 # Algorithm:
@@ -27,8 +24,7 @@ print("taking photos")
 for x in range(CAMERA_RESOLUTION):
     for _ in range(PHOTOS_PER_OFFSET):
         # Take a picture
-        photo: Photo = Photo(world, CAMERA_SIZE, CAMERA_RESOLUTION, x)
-        photo_list.append(photo)
+        photo_list.append(Photo(world, CAMERA_SIZE, CAMERA_RESOLUTION, x))
     print(f"taken photos for group {x+1}/{CAMERA_RESOLUTION}")
 
 print(f"photos taken: {len(photo_list)}")
@@ -103,7 +99,7 @@ peaks = sorted([(i, dist) for i, dist in enumerate(clean_distances)],
                key=lambda tup: tup[1], reverse=True)[0:CAMERA_RESOLUTION-1]
 #peaks_indeces: List[int] = sorted([i for i, _ in peaks])
 #TODO: remove this dependency
-#abuse the fact that each group has 16 photos
+#abuse the fact that each group has n photos
 peaks_indeces: List[int] = [i*PHOTOS_PER_OFFSET for i in range(1,CAMERA_RESOLUTION)]
 
 print(f"peaks: {peaks}")
@@ -228,19 +224,6 @@ def construct_world(whites):
                     final_photo[i+(ind)*r] = choice
                     final_photo[i+(ind+1)*r] = choice
     return final_photo
-
-# whites = [[0,.5,.5, 1, 1,.5, 0,.5],
-#           [0, 1,.5, 1, 1, 0, 0,.5]]
-
-# fin = whites[0]
-# inverted = fin[1:]
-# inverted.append(fin[0])
-# whites.append(inverted)
-
-# print(whites)
-# final_photo = contruct_frequency_world(whites)
-# print(final_photo)
-
 
 # assume photos are aligned
 whites: List[List[float]] = [b.get_whites_count_int() for b in buckets]
