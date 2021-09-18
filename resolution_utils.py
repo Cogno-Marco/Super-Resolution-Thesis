@@ -1,5 +1,13 @@
-from typing import Tuple
+from typing import Tuple, List
 import math
+from photo import Photo
+
+def insert_in_chain(chain: List[Photo], photo: Photo):
+    if chain[0].get_distance(photo) < chain[-1].get_distance(photo):
+        chain.insert(0, photo)
+    else:
+        chain.append(photo)
+    
 
 def input_vars() -> Tuple[int, int, int]:
     repeat = "n"

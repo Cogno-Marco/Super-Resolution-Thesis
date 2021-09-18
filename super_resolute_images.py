@@ -9,27 +9,25 @@ import resolution_utils as utils
 
 CAMERA_SIZE, CAMERA_RESOLUTION, PHOTOS_PER_OFFSET = utils.input_vars()
 
-# CAMERA_SIZE: int = 150000
-# CAMERA_RESOLUTION: int = 16
-# PHOTOS_PER_OFFSET: int = 100
-
 # load world with image
 world: w.World = w.World(CAMERA_SIZE * CAMERA_RESOLUTION)
 
 
 # Algorithm:
 
+print("taking photos")
 photo_list: List[Photo] = []
 
-print("taking photos")
 
 # for each try for each offset
 for x in range(CAMERA_RESOLUTION):
     for _ in range(PHOTOS_PER_OFFSET):
         # Take a picture
         photo_list.append(Photo(world, CAMERA_SIZE, CAMERA_RESOLUTION, x))
-    print(f"taken photos for group {x+1}/{CAMERA_RESOLUTION}")
+    print(f"Groups of photos taken: {x+1}/{CAMERA_RESOLUTION} ", end="\r")
 
+print("\n")
+# print(f"taken photos for group {x+1}/{CAMERA_RESOLUTION}")
 print(f"photos taken: {len(photo_list)}")
 # randomyze photo list
 random.shuffle(photo_list)
@@ -48,37 +46,28 @@ maximum = CAMERA_RESOLUTION * PHOTOS_PER_OFFSET
 while len(photo_list) > 0:
     percentage = round(((maximum - len(photo_list))/maximum) * 100,2)
     print(f"Remaining {len(photo_list)} images --- {percentage}%             ", end="\r")
-    # if len(photo_list) % 10 == 0:
-    #     print(f"remaining {len(photo_list)} images")
+
     hasJoinedImage: bool = False
 
     # find closest image and try to add others
-    closest: Photo = photo_list[0]
+    closest: Photo = photo_list[0] # assume the first one is closest
     indexOfClosest: int = 0
-    closestDiffR: int = chain[-1].get_distance(closest)
-    closestDiffL: int = chain[0].get_distance(closest)
-    for i in range(1, len(photo_list)):
-        photo = photo_list[i]
-        if chain[-1].is_photo_aligned(photo) or chain[0].is_photo_aligned(photo):
-            print("found an aligned photo")
-            if chain[0].get_distance(photo) <= chain[-1].get_distance(photo):
-                chain.insert(0, photo)
-            else:
-                chain.insert(-1, photo)
-            photo_list.pop(i)
-            hasJoinedImage = True
-            break
+    closestDiffR: int = chain[-1].get_distance(closest) # get distance to last
+    closestDiffL: int = chain[0].get_distance(closest) # get distance to first
+    for i, photo in enumerate(photo_list):
 
         bucketDiffR: int = chain[-1].get_distance(photo)
         bucketDiffL: int = chain[0].get_distance(photo)
 
+        # if this photo is closest to either sides, save it
         if min(bucketDiffR, bucketDiffL) < min(closestDiffR, closestDiffL):
             #print(f"new distances: left {bucketDiffL}, right {bucketDiffR}")
             closest = photo
             indexOfClosest = i
-            #update closest count
-            closestDiffR = chain[-1].get_distance(closest)
-            closestDiffL = chain[0].get_distance(closest)
+            
+            # update closest count
+            closestDiffR = bucketDiffR
+            closestDiffL = bucketDiffL
 
     # skip photo if it was added to a bucket
     if hasJoinedImage:
@@ -86,12 +75,12 @@ while len(photo_list) > 0:
 
     # here I have the closest photo, a simple diff tells me if it's closest left or right
     # add it as a new chain to that side
-    if chain[0].get_distance(closest) < chain[-1].get_distance(closest):
-        chain.insert(0, closest)
-    else:
-        chain.insert(-1, closest)
+    utils.insert_in_chain(chain, closest)
+
     # remove from list of images and continue
     photo_list.pop(indexOfClosest)
+
+print("\n")
 
 distances = [chain[i].get_distance(chain[i-1]) for i in range(1, len(chain))]
 offsets = [p.offset for p in chain]
@@ -108,23 +97,6 @@ peaks = sorted([(i, dist) for i, dist in enumerate(clean_distances)],
 #TODO: remove this dependency
 #abuse the fact that each group has n photos
 peaks_indeces: List[int] = [i*PHOTOS_PER_OFFSET for i in range(1,CAMERA_RESOLUTION)]
-
-# print(f"peaks: {peaks}")
-# print(f"peaks: {peaks_indeces}")
-
-# print(f"distance from first to last: {chain[0].get_distance(chain[-1])}")
-# print(f"distance from first to second: {chain[0].get_distance(chain[1])}")
-# print("first photo:")
-# print(chain[0].photo[0:20])
-# print("second photo:")
-# print(chain[1].photo[0:20])
-# print("last photo:")
-# print(chain[-1].photo[0:20])
-# plt.bar(list(range(1, len(chain))), distances)
-# plt.show()
-# plt.bar(list(range(len(chain))), offsets)
-# plt.show()
-
 
 ranges = [(peaks_indeces[i]+2, peaks_indeces[i+1]+1)
           for i in range(len(peaks_indeces)-1)]
@@ -167,8 +139,6 @@ def construct_frequency_world(whites: List[List[float]]) -> List[int]:
             partial.append(partial[-1] + d)
         partial.pop(-1)
         reconstruction.append(partial)
-        #plt.bar(list(range(0, min(1000, len(partial)))), partial[:1000])
-        #plt.show()
     
     print("recs:")
     for f in reconstruction:
@@ -290,7 +260,7 @@ print(f"error rate REVERSED: {100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE
 accuracy_straigth = round(100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE),2)
 accusacy_reversed = round(100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE),2)
 
-print(f"Accuracy straigth: {accuracy_straigth}%")
-print(f"Accuracy reversed: {accusacy_reversed}%")
+print(f"Accuracy straigth: {100-accuracy_straigth}%")
+print(f"Accuracy reversed: {100-accusacy_reversed}%")
 
 input('Press ENTER to exit')
