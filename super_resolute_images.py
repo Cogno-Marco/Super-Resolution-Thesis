@@ -5,13 +5,16 @@ from bucket import Bucket
 from photo import Photo
 import random
 import matplotlib.pyplot as plt
+import resolution_utils as utils
 
-CAMERA_SIZE: int = 150000
-CAMERA_RESOLUTION: int = 16
+CAMERA_SIZE, CAMERA_RESOLUTION, PHOTOS_PER_OFFSET = utils.input_vars()
+
+# CAMERA_SIZE: int = 150000
+# CAMERA_RESOLUTION: int = 16
+# PHOTOS_PER_OFFSET: int = 100
 
 # load world with image
 world: w.World = w.World(CAMERA_SIZE * CAMERA_RESOLUTION)
-PHOTOS_PER_OFFSET: int = 100
 
 
 # Algorithm:
