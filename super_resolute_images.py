@@ -47,8 +47,6 @@ while len(photo_list) > 0:
     percentage = round(((maximum - len(photo_list))/maximum) * 100,2)
     print(f"Remaining {len(photo_list)} images --- {percentage}%             ", end="\r")
 
-    hasJoinedImage: bool = False
-
     # find closest image and try to add others
     closest: Photo = photo_list[0] # assume the first one is closest
     indexOfClosest: int = 0
@@ -59,9 +57,8 @@ while len(photo_list) > 0:
         bucketDiffR: int = chain[-1].get_distance(photo)
         bucketDiffL: int = chain[0].get_distance(photo)
 
-        # if this photo is closest to either sides, save it
+        # if this photo has a distance to any side closer than the old ones
         if min(bucketDiffR, bucketDiffL) < min(closestDiffR, closestDiffL):
-            #print(f"new distances: left {bucketDiffL}, right {bucketDiffR}")
             closest = photo
             indexOfClosest = i
             
@@ -69,12 +66,7 @@ while len(photo_list) > 0:
             closestDiffR = bucketDiffR
             closestDiffL = bucketDiffL
 
-    # skip photo if it was added to a bucket
-    if hasJoinedImage:
-        continue
-
-    # here I have the closest photo, a simple diff tells me if it's closest left or right
-    # add it as a new chain to that side
+    # add the closest photo in the chain
     utils.insert_in_chain(chain, closest)
 
     # remove from list of images and continue
@@ -127,10 +119,6 @@ def construct_frequency_world(whites: List[List[float]]) -> List[int]:
     for i in range(len(whites)-1):
         diffs.append([b-a for a,b in zip(whites[i], whites[i+1])])
     
-    print("diffs:")
-    for f in diffs:
-        print(f[0:20])
-    
     #calculate partial reconstruction
     reconstruction: List[List[float]] = []
     for diff in diffs:
@@ -139,10 +127,6 @@ def construct_frequency_world(whites: List[List[float]]) -> List[int]:
             partial.append(partial[-1] + d)
         partial.pop(-1)
         reconstruction.append(partial)
-    
-    print("recs:")
-    for f in reconstruction:
-        print(f[0:20])
     
     # remap from [min,max] to [0,1]
     pieces: List[List[int]] = []
@@ -210,10 +194,6 @@ inverted = fin[1:]
 inverted.append(fin[0])
 whites.append(inverted)
 
-print("whites:")
-for f in whites:
-    print(f[0:20])
-
 final_photo: List[int] = construct_frequency_world(whites)
 
 ground_truth = world.getWorld()
@@ -223,12 +203,10 @@ print(final_photo[0:20])
 print("original world")
 print(ground_truth[0:20])
 
-errors_straight = 0
-for i in range(min(len(final_photo), len(ground_truth))):
-    if final_photo[i] != ground_truth[i]:
-        errors_straight += 1
+errors_straight: int = sum([k1 ^ k2 for k1, k2 in zip(final_photo, ground_truth)])
+error_straigth = 100 * errors_straight / (CAMERA_RESOLUTION * CAMERA_SIZE)
 
-print(f"error rate straight: {100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
+print(f"error rate straight: {error_straigth:.2f}%")
 
 
 # assume photos are reversed
@@ -238,9 +216,6 @@ fin = whites_rev[0]
 inverted = fin[:-1]
 inverted.append(fin[-1])
 whites_rev.append(inverted)
-print("whites:")
-for f in whites:
-    print(f[0:20])
     
 final_photo_rev: List[int] = construct_frequency_world(whites_rev)
 
@@ -250,17 +225,13 @@ print(final_photo_rev[0:20])
 print("original world")
 print(ground_truth[0:20])
 
-errors_reversed = 0
-for i in range(min(len(final_photo_rev), len(ground_truth))):
-    if final_photo_rev[i] != ground_truth[i]:
-        errors_reversed += 1
+errors_reversed: int = sum([k1 ^ k2 for k1, k2 in zip(final_photo_rev, ground_truth)])
+error_reversed = 100 * errors_reversed / (CAMERA_RESOLUTION * CAMERA_SIZE)
 
-print(f"error rate REVERSED: {100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
+print(f"error rate REVERSED: {error_reversed:.2f}%")
 
-accuracy_straigth = round(100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE),2)
-accusacy_reversed = round(100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE),2)
 
-print(f"Accuracy straigth: {100-accuracy_straigth}%")
-print(f"Accuracy reversed: {100-accusacy_reversed}%")
+print(f"Accuracy straigth: {100 - error_straigth:.2f}%")
+print(f"Accuracy reversed: {100 - error_reversed:.2f}%")
 
 input('Press ENTER to exit')
