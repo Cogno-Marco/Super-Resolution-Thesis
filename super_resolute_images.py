@@ -43,9 +43,13 @@ random.shuffle(photo_list)
 #chain: Chain = Chain(mainBucket, CAMERA_RESOLUTION)
 chain: List[Photo] = [photo_list.pop(random.randint(0, len(photo_list)-1))]
 print(f"starting offset: {chain[0].offset}")
+maximum = CAMERA_RESOLUTION * PHOTOS_PER_OFFSET
+
 while len(photo_list) > 0:
-    if len(photo_list) % 10 == 0:
-        print(f"remaining {len(photo_list)} images")
+    percentage = round(((maximum - len(photo_list))/maximum) * 100,2)
+    print(f"Remaining {len(photo_list)} images --- {percentage}%             ", end="\r")
+    # if len(photo_list) % 10 == 0:
+    #     print(f"remaining {len(photo_list)} images")
     hasJoinedImage: bool = False
 
     # find closest image and try to add others
@@ -105,21 +109,21 @@ peaks = sorted([(i, dist) for i, dist in enumerate(clean_distances)],
 #abuse the fact that each group has n photos
 peaks_indeces: List[int] = [i*PHOTOS_PER_OFFSET for i in range(1,CAMERA_RESOLUTION)]
 
-print(f"peaks: {peaks}")
-print(f"peaks: {peaks_indeces}")
+# print(f"peaks: {peaks}")
+# print(f"peaks: {peaks_indeces}")
 
-print(f"distance from first to last: {chain[0].get_distance(chain[-1])}")
-print(f"distance from first to second: {chain[0].get_distance(chain[1])}")
-print("first photo:")
-print(chain[0].photo[0:20])
-print("second photo:")
-print(chain[1].photo[0:20])
-print("last photo:")
-print(chain[-1].photo[0:20])
-plt.bar(list(range(1, len(chain))), distances)
-plt.show()
-plt.bar(list(range(len(chain))), offsets)
-plt.show()
+# print(f"distance from first to last: {chain[0].get_distance(chain[-1])}")
+# print(f"distance from first to second: {chain[0].get_distance(chain[1])}")
+# print("first photo:")
+# print(chain[0].photo[0:20])
+# print("second photo:")
+# print(chain[1].photo[0:20])
+# print("last photo:")
+# print(chain[-1].photo[0:20])
+# plt.bar(list(range(1, len(chain))), distances)
+# plt.show()
+# plt.bar(list(range(len(chain))), offsets)
+# plt.show()
 
 
 ranges = [(peaks_indeces[i]+2, peaks_indeces[i+1]+1)
@@ -282,3 +286,11 @@ for i in range(min(len(final_photo_rev), len(ground_truth))):
         errors_reversed += 1
 
 print(f"error rate REVERSED: {100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE):.2f}%")
+
+accuracy_straigth = round(100*errors_straight/(CAMERA_RESOLUTION*CAMERA_SIZE),2)
+accusacy_reversed = round(100*errors_reversed/(CAMERA_RESOLUTION*CAMERA_SIZE),2)
+
+print(f"Accuracy straigth: {accuracy_straigth}%")
+print(f"Accuracy reversed: {accusacy_reversed}%")
+
+input('Press ENTER to exit')
