@@ -43,7 +43,7 @@ class Bucket:
                 whites[ind] += macro
         return [count/len(self.photos) for count in whites]
     
-    def get_whites_count_int(self) -> List[float]:
+    def get_whites_count_int(self) -> List[int]:
         whites = [0 for _ in range(self.k)]
         for photo in self.photos:
             for ind, macro in enumerate(photo.photo):
