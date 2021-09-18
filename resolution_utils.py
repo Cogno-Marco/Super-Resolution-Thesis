@@ -14,7 +14,7 @@ def input_vars() -> Tuple[int, int, int]:
     choose = "m"
     k,r,f = 0,0,0
     execute = False
-    while (choose != "m" or choose != "f" and execute == False):
+    while (choose != "m" or choose != "f") and execute == False:
         choose = input("Variables set manually or by formula? [M/F]: ").lower()
         
         # manual variable setting
